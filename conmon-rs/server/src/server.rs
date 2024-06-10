@@ -126,6 +126,31 @@ impl Server {
             .map_err(errno::from_i32)
             .context("set child subreaper")?;
 
+        use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
+        use nix::unistd::Pid;
+        use std::thread;
+        use std::time::Duration;
+        // 创建一个新线程来回收僵尸进程
+        thread::spawn(move || {
+            loop {
+                match waitpid(Pid::from_raw(-1), Some(WaitPidFlag::WNOHANG)) {
+                    Ok(WaitStatus::StillAlive) => {
+                        // 没有僵尸进程需要处理，稍后再试
+                    }
+                    Ok(_) => {
+                        // 成功回收了一个僵尸进程
+                    }
+                    Err(e) => {
+                        eprintln!("Error waiting for child process: {}", e);
+                        break;
+                    }
+                }
+
+                // 休眠一段时间再次检查，以避免过度占用CPU
+                thread::sleep(Duration::from_secs(1));
+            }
+        });
+
         let enable_tracing = self.config().enable_tracing();
 
         let rt = Builder::new_multi_thread().enable_all().build()?;

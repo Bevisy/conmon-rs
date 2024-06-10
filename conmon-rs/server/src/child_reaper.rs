@@ -118,6 +118,16 @@ impl ChildReaper {
         let output = child.wait_with_output().await?;
 
         if !output.status.success() {
+            // use nix::sys::wait::WaitPidFlag;
+            // // try to reaper all grandchild process
+            // if let Ok(grandchild_pid_str) = fs::read_to_string(pidfile).await {
+            //     if let Ok(grandchild_pid) = grandchild_pid_str.parse::<i32>() {
+            //         // 使用 nix 库的 waitpid 来等待孙子进程结束
+            //         // 注意：这里没有处理 waitpid 可能的错误，实际代码中应该处理或记录这些错误
+            //         let _ = waitpid(Pid::from_raw(grandchild_pid), Some(WaitPidFlag::WNOHANG));
+            //     }
+            // }
+
             const BASE_ERR: &str = "child command exited with";
 
             let mut err_str = match output.status.code() {
